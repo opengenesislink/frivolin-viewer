@@ -72,8 +72,8 @@ func handleG1Login(w http.ResponseWriter,r *http.Request, endpoint *url.URL) {
  if p.Start!="last" && p.Start!="home" {
   jsonResponse(w,400,map[string]string{"code":"invalid_start"});return
  }
- // Never forward credentials over plaintext HTTP.
- if endpoint.Scheme!="https" {
+ // Plain HTTP is permitted only over an explicitly configured private transport.
+ if !secureG1Transport(endpoint) {
   jsonResponse(w,503,map[string]string{"code":"secure_upstream_required"});return
  }
  body:=strings.NewReader(makeLoginXML(p))
