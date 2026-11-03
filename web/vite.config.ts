@@ -21,6 +21,14 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: '/index.html',
+        maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
+        // Babylon.js is currently a large bundle; do not precache it.
+        // It is fetched normally and can be split into smaller chunks later.
+        manifestEntries: undefined,
+        manifestTransforms: [async (entries) => ({
+          manifest: entries.filter(entry => !/\\/assets\\/index-[^/]+\\.js$/.test(entry.url)),
+          warnings: []
+        })],
         runtimeCaching: [],
         cleanupOutdatedCaches: true
       }
