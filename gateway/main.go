@@ -2,6 +2,7 @@ package main
 
 import (
  "context"
+
  "encoding/json"
  "log"
  "net/http"
@@ -58,14 +59,16 @@ func main() {
   jsonResponse(w, http.StatusOK, capabilities{
    Name:"Frivolin G1 WebGateway", GridName:"Stadt NexVerse – Generation 1",
    GridConnected:reachable, ProtocolVersion:"0.2",
-   LoginSupported:false, RealtimeSupported:false, LoginEndpointConfigured:endpoint!=nil,
+   LoginSupported:endpoint!=nil && endpoint.Scheme=="https" && os.Getenv("G1_ENABLE_LOGIN")=="true", RealtimeSupported:false, LoginEndpointConfigured:endpoint!=nil,
   })
  })
  mux.HandleFunc("POST /api/v1/session/login", func(w http.ResponseWriter, r *http.Request) {
-  jsonResponse(w, http.StatusNotImplemented, map[string]string{
-   "code":"g1_login_not_implemented",
-   "message":"G1-Login ist noch nicht freigeschaltet. Bitte keine Zugangsdaten übermitteln.",
-  })
+  if endpoint == nil || endpoint.Scheme != "https" || os.Getenv("G1_ENABLE_LOGIN") != "true" {
+   jsonResponse(w, http.StatusServiceUnavailable, map[string]string{"code":"login_disabled","message":"Login bleibt gesperrt, bis G1 über HTTPS erreichbar und explizit freigeschaltet ist."})
+   return
+  }
+  handleG1Login(w, r, endpoint)
+
  })
  addr := os.Getenv("LISTEN_ADDR")
  if addr == "" { addr = "127.0.0.1:8090" }
