@@ -6,7 +6,6 @@ import (
  "encoding/json"
  "log"
  "net/http"
- "net"
  "net/url"
  "os"
  "strings"
@@ -29,18 +28,6 @@ func jsonResponse(w http.ResponseWriter, status int, value any) {
  w.Header().Set("X-Content-Type-Options", "nosniff")
  w.WriteHeader(status)
  _ = json.NewEncoder(w).Encode(value)
-}
-
-// HTTP is supported for OpenSim G1, but credentials require an explicitly
-// configured private transport. A public HTTP endpoint is never eligible.
-func secureG1Transport(endpoint *url.URL) bool {
- if endpoint == nil { return false }
- if endpoint.Scheme == "https" { return true }
- if endpoint.Scheme != "http" || os.Getenv("G1_PRIVATE_TRANSPORT") != "true" { return false }
- host := endpoint.Hostname()
- ip := net.ParseIP(host)
- if ip == nil || !(ip.IsLoopback() || ip.IsPrivate()) { return false }
- return true
 }
 
 func main() {
@@ -72,12 +59,12 @@ func main() {
   jsonResponse(w, http.StatusOK, capabilities{
    Name:"Frivolin G1 WebGateway", GridName:"Stadt NexVerse – Generation 1",
    GridConnected:reachable, ProtocolVersion:"0.2",
-   LoginSupported:secureG1Transport(endpoint) && os.Getenv("G1_ENABLE_LOGIN")=="true", RealtimeSupported:false, LoginEndpointConfigured:endpoint!=nil,
+   LoginSupported:endpoint != nil && os.Getenv("G1_ENABLE_LOGIN")=="true", RealtimeSupported:false, LoginEndpointConfigured:endpoint!=nil,
   })
  })
  mux.HandleFunc("POST /api/v1/session/login", func(w http.ResponseWriter, r *http.Request) {
-  if !secureG1Transport(endpoint) || os.Getenv("G1_ENABLE_LOGIN") != "true" {
-   jsonResponse(w, http.StatusServiceUnavailable, map[string]string{"code":"login_disabled","message":"Login gesperrt: HTTPS oder ein explizit freigegebener privater HTTP-Transport ist erforderlich."})
+  if !endpoint != nil || os.Getenv("G1_ENABLE_LOGIN") != "true" {
+   jsonResponse(w, http.StatusServiceUnavailable, map[string]string{"code":"login_disabled","message":"Login ist nicht freigeschaltet."})
    return
   }
   handleG1Login(w, r, endpoint)
