@@ -11,7 +11,7 @@ func TestLoginXMLIsEscaped(t *testing.T) {
  if strings.Contains(payload,"<secret>") || !strings.Contains(payload,"&lt;secret&gt;&amp;") {
   t.Fatal("XML escaping failed")
  }
- var v any
+ var v struct { XMLName xml.Name }
  if err:=xml.Unmarshal([]byte(payload),&v);err!=nil {t.Fatal(err)}
 }
 func TestLoginResponseParsing(t *testing.T) {
