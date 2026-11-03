@@ -42,3 +42,9 @@ The Go gateway now implements XML-RPC request generation and response parsing fo
 Even with HTTPS and login enabled, the adapter does **not** establish a simulator circuit or maintain an authenticated browser session. Successful upstream authentication returns `session_transport_not_implemented`; do not treat it as a playable login. Before any public release implement per-IP rate limits, session storage, CSRF protections, login attempt throttling, and simulator transport. Do not publicly expose this experimental endpoint.
 
 Example only after configuring and verifying the private tunnel: `G1_LOGIN_URL=http://10.78.0.5:80/ G1_PRIVATE_TRANSPORT=true G1_ENABLE_LOGIN=true ./frivolin-gateway` (replace example IP with the actual privately reachable G1 address). The flags alone do not create or secure a tunnel. No live avatar session is available yet.
+
+## Browser login UI (2026-11-03)
+
+The web client now has a real form wired to `POST /api/v1/session/login`. It is disabled unless the gateway reports `loginSupported=true` and the browser is on a secure same-origin connection. Password input is cleared after a response. **This does not mean an avatar session exists.** The Go adapter still returns `session_transport_not_implemented` on successful upstream authentication; the real simulator region is not streamed. The Babylon scene is a placeholder, not Magdeburg. Do not advertise this build as a playable world viewer.
+
+Required for a real world view: store successful login circuit/agent/session information server-side; establish and maintain simulator UDP circuit, CAPS seed/EventQueue; fetch and decode terrain, region objects, textures, mesh and avatar appearance; expose authenticated per-session world state to the browser. No OpenSim UDP-to-WebSocket protocol is implemented yet.
