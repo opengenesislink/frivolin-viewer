@@ -26,3 +26,7 @@ The browser defaults to same-origin `/api/v1/capabilities`; `VITE_GATEWAY_URL` m
 - Never expose a raw arbitrary upstream URL as a client-provided parameter.
 - TLS is terminated at the HTTPS frontend; secure the backend hop.
 - Add CSRF defenses, rate limiting, XML-RPC response validation, secure session handling and UDP/CAPS transport before enabling actual login.
+
+## Verified G1 XML-RPC probe (2026-11-03)
+
+`POST http://hg.stadt-nexverse.de:80/` with method `login_to_simulator` and an empty params array returned HTTP 200, an XML-RPC fault (`-32603`), and `System.Net.IPEndPoint` to `System.Collections.Hashtable` cast exception. This establishes XML-RPC method dispatch, **not** successful authentication. The malformed probe omitted the required XML-RPC struct parameter. Do not infer a broken grid from this fault. Gateway capability `gridConnected` currently means HTTP transport reachable, not logged in.
