@@ -24,9 +24,8 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
         // Babylon.js is currently a large bundle; do not precache it.
         // It is fetched normally and can be split into smaller chunks later.
-        manifestEntries: undefined,
         manifestTransforms: [async (entries) => ({
-          manifest: entries.filter(entry => !/\\/assets\\/index-[^/]+\\.js$/.test(entry.url)),
+          manifest: entries.filter(entry => !(entry.url.startsWith('assets/index-') && entry.url.endsWith('.js'))),
           warnings: []
         })],
         runtimeCaching: [],
