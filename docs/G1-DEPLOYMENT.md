@@ -34,3 +34,9 @@ The browser defaults to same-origin `/api/v1/capabilities`; `VITE_GATEWAY_URL` m
 ## Structured login probe (2026-11-03)
 
 A correctly structured XML-RPC `login_to_simulator` request with a dummy username/password returned HTTP 200 and a valid method response: `login=false`, `reason=presence`, `message=Logins are currently restricted. Please try again later.` This confirms XML-RPC request parsing and login method execution, **not** a successful authenticated session. Check G1 login restrictions, presence/login services and server logs before enabling credential submission. The previous `IPEndPoint`/`Hashtable` fault was triggered by an empty parameter list.
+
+## XML-RPC login adapter (phase 2)
+
+The Go gateway now implements XML-RPC request generation and response parsing for `login_to_simulator`. **Login remains disabled by default**. To enable upstream credential forwarding, `G1_LOGIN_URL` must use **HTTPS** with a valid certificate, and `G1_ENABLE_LOGIN=true` must be set explicitly. The currently supplied G1 endpoint `http://hg.stadt-nexverse.de:80/` does **not** meet this requirement. Never bypass certificate verification or enable plaintext credential forwarding.
+
+Even with HTTPS and login enabled, the adapter does **not** establish a simulator circuit or maintain an authenticated browser session. Successful upstream authentication returns `session_transport_not_implemented`; do not treat it as a playable login. Before any public release implement per-IP rate limits, session storage, CSRF protections, login attempt throttling, and simulator transport. Do not publicly expose this experimental endpoint.
