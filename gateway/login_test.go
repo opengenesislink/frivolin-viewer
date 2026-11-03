@@ -1,0 +1,22 @@
+package main
+
+import (
+ "encoding/xml"
+ "strings"
+ "testing"
+)
+
+func TestLoginXMLIsEscaped(t *testing.T) {
+ payload:=makeLoginXML(loginRequest{First:"A<&",Last:"Viewer",Password:"<secret>&",Start:"last"})
+ if strings.Contains(payload,"<secret>") || !strings.Contains(payload,"&lt;secret&gt;&amp;") {
+  t.Fatal("XML escaping failed")
+ }
+ var v any
+ if err:=xml.Unmarshal([]byte(payload),&v);err!=nil {t.Fatal(err)}
+}
+func TestLoginResponseParsing(t *testing.T) {
+ data:=`<?xml version="1.0"?><methodResponse><params><param><value><struct><member><name>login</name><value><string>false</string></value></member><member><name>reason</name><value><string>key</string></value></member></struct></value></param></params></methodResponse>`
+ var response xmlResponse
+ if err:=xml.Unmarshal([]byte(data),&response);err!=nil {t.Fatal(err)}
+ if len(response.Params)!=1 || valueMap(response.Params[0])["reason"]!="key" {t.Fatal("unexpected response")}
+}
