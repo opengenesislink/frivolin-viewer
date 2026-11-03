@@ -72,8 +72,16 @@ func main() {
   })
  })
  mux.HandleFunc("POST /api/v1/session/login", func(w http.ResponseWriter, r *http.Request) {
-  if !secureG1Transport(endpoint) || os.Getenv("G1_ENABLE_LOGIN") != "true" {
-   jsonResponse(w, http.StatusServiceUnavailable, map[string]string{"code":"login_disabled","message":"Login ist nicht freigeschaltet."})
+  if endpoint == nil {
+   jsonResponse(w, http.StatusServiceUnavailable, map[string]string{"code":"login_endpoint_missing","message":"G1_LOGIN_URL ist nicht konfiguriert."})
+   return
+  }
+  if !secureG1Transport(endpoint) {
+   jsonResponse(w, http.StatusServiceUnavailable, map[string]string{"code":"login_transport_blocked","message":"G1-Login benötigt HTTPS oder eine ausdrücklich konfigurierte private HTTP-Verbindung."})
+   return
+  }
+  if os.Getenv("G1_ENABLE_LOGIN") != "true" {
+   jsonResponse(w, http.StatusServiceUnavailable, map[string]string{"code":"login_disabled","message":"G1_ENABLE_LOGIN ist nicht aktiviert."})
    return
   }
   handleG1Login(w, r, endpoint)
