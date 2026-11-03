@@ -37,6 +37,8 @@ A correctly structured XML-RPC `login_to_simulator` request with a dummy usernam
 
 ## XML-RPC login adapter (phase 2)
 
-The Go gateway now implements XML-RPC request generation and response parsing for `login_to_simulator`. **Login remains disabled by default**. To enable upstream credential forwarding, `G1_LOGIN_URL` must use **HTTPS** with a valid certificate, and `G1_ENABLE_LOGIN=true` must be set explicitly. The currently supplied G1 endpoint `http://hg.stadt-nexverse.de:80/` does **not** meet this requirement. Never bypass certificate verification or enable plaintext credential forwarding.
+The Go gateway now implements XML-RPC request generation and response parsing for `login_to_simulator`. **Login remains disabled by default**. To enable upstream credential forwarding, use HTTPS **or** a privately routed HTTP connection (e.g. WireGuard) with a literal private or loopback IP as `G1_LOGIN_URL`. For private HTTP set both `G1_PRIVATE_TRANSPORT=true` and `G1_ENABLE_LOGIN=true`. The public hostname `http://hg.stadt-nexverse.de:80/` does **not** qualify: do not forward credentials over the public Internet in plaintext. Never disable TLS certificate verification.
 
 Even with HTTPS and login enabled, the adapter does **not** establish a simulator circuit or maintain an authenticated browser session. Successful upstream authentication returns `session_transport_not_implemented`; do not treat it as a playable login. Before any public release implement per-IP rate limits, session storage, CSRF protections, login attempt throttling, and simulator transport. Do not publicly expose this experimental endpoint.
+
+Example only after configuring and verifying the private tunnel: `G1_LOGIN_URL=http://10.78.0.5:80/ G1_PRIVATE_TRANSPORT=true G1_ENABLE_LOGIN=true ./frivolin-gateway` (replace example IP with the actual privately reachable G1 address). The flags alone do not create or secure a tunnel. No live avatar session is available yet.
