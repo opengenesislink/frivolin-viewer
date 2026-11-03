@@ -6,6 +6,7 @@ import (
  "encoding/json"
  "log"
  "net/http"
+ "net"
  "net/url"
  "os"
  "strings"
@@ -30,6 +31,14 @@ func jsonResponse(w http.ResponseWriter, status int, value any) {
  _ = json.NewEncoder(w).Encode(value)
 }
 
+// Credentials are only forwarded over TLS or an explicitly configured private link.
+func secureG1Transport(endpoint *url.URL) bool {
+ if endpoint == nil { return false }
+ if endpoint.Scheme == "https" { return true }
+ if endpoint.Scheme != "http" || os.Getenv("G1_PRIVATE_TRANSPORT") != "true" { return false }
+ ip := net.ParseIP(endpoint.Hostname())
+ return ip != nil && (ip.IsLoopback() || ip.IsPrivate())
+}
 func main() {
  raw := strings.TrimSpace(os.Getenv("G1_LOGIN_URL"))
  var endpoint *url.URL
@@ -59,11 +68,11 @@ func main() {
   jsonResponse(w, http.StatusOK, capabilities{
    Name:"Frivolin G1 WebGateway", GridName:"Stadt NexVerse – Generation 1",
    GridConnected:reachable, ProtocolVersion:"0.2",
-   LoginSupported:endpoint != nil && os.Getenv("G1_ENABLE_LOGIN")=="true", RealtimeSupported:false, LoginEndpointConfigured:endpoint!=nil,
+   LoginSupported:secureG1Transport(endpoint) && os.Getenv("G1_ENABLE_LOGIN")=="true", RealtimeSupported:false, LoginEndpointConfigured:endpoint!=nil,
   })
  })
  mux.HandleFunc("POST /api/v1/session/login", func(w http.ResponseWriter, r *http.Request) {
-  if !endpoint != nil || os.Getenv("G1_ENABLE_LOGIN") != "true" {
+  if !secureG1Transport(endpoint) || os.Getenv("G1_ENABLE_LOGIN") != "true" {
    jsonResponse(w, http.StatusServiceUnavailable, map[string]string{"code":"login_disabled","message":"Login ist nicht freigeschaltet."})
    return
   }
