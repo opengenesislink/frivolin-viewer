@@ -30,3 +30,7 @@ The browser defaults to same-origin `/api/v1/capabilities`; `VITE_GATEWAY_URL` m
 ## Verified G1 XML-RPC probe (2026-11-03)
 
 `POST http://hg.stadt-nexverse.de:80/` with method `login_to_simulator` and an empty params array returned HTTP 200, an XML-RPC fault (`-32603`), and `System.Net.IPEndPoint` to `System.Collections.Hashtable` cast exception. This establishes XML-RPC method dispatch, **not** successful authentication. The malformed probe omitted the required XML-RPC struct parameter. Do not infer a broken grid from this fault. Gateway capability `gridConnected` currently means HTTP transport reachable, not logged in.
+
+## Structured login probe (2026-11-03)
+
+A correctly structured XML-RPC `login_to_simulator` request with a dummy username/password returned HTTP 200 and a valid method response: `login=false`, `reason=presence`, `message=Logins are currently restricted. Please try again later.` This confirms XML-RPC request parsing and login method execution, **not** a successful authenticated session. Check G1 login restrictions, presence/login services and server logs before enabling credential submission. The previous `IPEndPoint`/`Hashtable` fault was triggered by an empty parameter list.
