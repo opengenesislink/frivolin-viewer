@@ -56,12 +56,12 @@ if (!gateway) {
 } else {
   const ctrl = new AbortController();
   const timeout = window.setTimeout(() => ctrl.abort(), 3000);
-  fetch(new URL('/api/v1/capabilities', gateway), { signal: ctrl.signal })
+  fetch(new URL('/api/v1/capabilities', new URL(gateway, window.location.origin)), { signal: ctrl.signal })
     .then(async r => {
       if (!r.ok) throw new Error(String(r.status));
       return r.json() as Promise<{ gridConnected?: boolean; loginSupported?: boolean; loginEndpointConfigured?: boolean }>;
     })
-    .then(info => { gatewayStatus.textContent = info.gridConnected ? 'G1-Endpunkt erreichbar · Login noch gesperrt' : (info.loginEndpointConfigured ? 'Gateway online · G1-Endpunkt nicht erreichbar' : 'Gateway online · G1-Endpunkt nicht konfiguriert'); })
+    .then(info => { gatewayStatus.textContent = info.gridConnected ? (info.loginSupported ? 'G1-Endpunkt erreichbar · Login-Adapter bereit' : 'G1-Endpunkt erreichbar · Login noch gesperrt') : (info.loginEndpointConfigured ? 'Gateway online · G1-Endpunkt nicht erreichbar' : 'Gateway online · G1-Endpunkt nicht konfiguriert'); })
     .catch(() => { gatewayStatus.textContent = 'Gateway nicht erreichbar · Demo-Modus'; })
     .finally(() => window.clearTimeout(timeout));
 }
