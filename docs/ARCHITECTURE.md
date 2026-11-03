@@ -23,3 +23,9 @@ Audit inventory permissions, asset access and economic transactions. No client-a
 
 ## PWA
 The initial manifest has a temporary SVG branding icon. For broad installability, replace it with authorized 192x192 and 512x512 PNG icons (and optionally maskable icons). The PWA app shell may work offline, but the virtual world cannot.
+
+## G1 LLUDP progress (2026-11-03)
+
+`gateway/lludp.go` implements a bounded decoder for basic LLUDP packet framing: flags, sequence, extra headers, high/medium/low message identifiers, appended ACKs and zero-coded payload expansion. Unit tests cover initial parsing and malformed input. This is **not** an active simulator connection. There is no UseCircuitCode handshake, reliable retransmission window, message-template decoder, terrain patch decoding, object replication, avatar appearance, CAPS seed/EventQueue, or live world rendering. The Babylon scene remains a local demonstration.
+
+A real login must keep agent/session identifiers and simulator circuit credentials isolated on the server and bind them to a secure browser session. The browser must not receive raw circuit codes or seed capabilities. The G1 login upstream is HTTP, as specified by the grid operator; public HTTP exposes credentials in transit, so this risk must be handled explicitly before production login.
