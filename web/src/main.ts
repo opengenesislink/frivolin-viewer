@@ -10,7 +10,8 @@ root.innerHTML = `
       <section class="panel"><div class="brand"><span>F</span>rivolin Viewer</div><div class="sub">Stadt NexVerse · Generation 1</div></section>
       <section class="panel right"><div class="pill">G1-Adapter · Vorschau</div><div>OpenGenesisLINK WebViewer</div><div id="gateway-status" class="status">Gateway wird geprüft …</div></section>
     </header>
-    <aside class="login panel" aria-label="G1 Anmeldung"><h2>Stadt NexVerse</h2><div class="sub">Generation 1 · Login-Vorschau</div><label>Vorname<input autocomplete="off" disabled placeholder="Avatar-Vorname" /></label><label>Nachname<input autocomplete="off" disabled placeholder="Avatar-Nachname" /></label><label>Passwort<input type="password" disabled placeholder="Noch nicht verfügbar" /></label><button class="btn" disabled>Anmelden (in Entwicklung)</button><p class="foot">Die Anmeldung ist absichtlich deaktiviert. Es werden keine Zugangsdaten übertragen.</p></aside>\n    <footer class="bottom">
+    <aside class="login panel" aria-label="G1 Anmeldung"><h2>Stadt NexVerse</h2><div class="sub">Generation 1 · Login</div><form id="login-form"><label>Vorname<input id="login-first" required maxlength="64" disabled autocomplete="given-name" /></label><label>Nachname<input id="login-last" required maxlength="64" disabled autocomplete="family-name" /></label><label>Passwort<input id="login-password" type="password" required maxlength="256" disabled autocomplete="current-password" /></label><button id="login-submit" class="btn" type="submit" disabled>Anmelden</button></form><p id="login-message" class="foot" role="status">Gateway wird geprüft. Login noch nicht verfügbar.</p></aside>
+    <footer class="bottom">
       <div class="panel hint">Lokale 3D-Demoszene · Maus/Touch: Kamera drehen · Mausrad: Zoom<div class="foot">G1-Anmeldung und Live-Regionen sind noch nicht verfügbar.</div></div>
       <button id="install" class="btn" hidden>App installieren</button>
     </footer>
@@ -51,6 +52,34 @@ window.addEventListener('resize', () => engine.resize());
 
 const gatewayStatus = document.querySelector<HTMLDivElement>('#gateway-status')!;
 const gateway = (import.meta.env.VITE_GATEWAY_URL as string | undefined) || window.location.origin;
+const loginForm = document.querySelector<HTMLFormElement>('#login-form')!;
+const loginMessage = document.querySelector<HTMLParagraphElement>('#login-message')!;
+const loginButton = document.querySelector<HTMLButtonElement>('#login-submit')!;
+const fields = ['login-first','login-last','login-password'].map(id => document.getElementById(id) as HTMLInputElement);
+let loginReady = false;
+loginForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!loginReady) return;
+  loginButton.disabled = true;
+  loginMessage.textContent = 'Anmeldung wird geprüft …';
+  try {
+    const response = await fetch(new URL('/api/v1/session/login', new URL(gateway, window.location.origin)), {
+      method: 'POST', credentials: 'same-origin', cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({first: fields[0].value.trim(), last: fields[1].value.trim(), password: fields[2].value, start: 'last'})
+    });
+    fields[2].value = '';
+    const data = await response.json() as { code?: string; reason?: string; message?: string };
+    loginMessage.textContent = data.code === 'login_rejected'
+      ? (data.reason === 'key' ? 'Avatarname oder Passwort ungültig.' : 'Anmeldung abgelehnt: ' + (data.reason || 'unbekannt'))
+      : (data.message || 'Loginstatus: ' + response.status);
+  } catch {
+    fields[2].value = '';
+    loginMessage.textContent = 'Login-Gateway nicht erreichbar.';
+  } finally {
+    loginButton.disabled = !loginReady;
+  }
+});
 if (!gateway) {
   gatewayStatus.textContent = 'Gateway nicht konfiguriert · Demo-Modus';
 } else {
@@ -61,7 +90,13 @@ if (!gateway) {
       if (!r.ok) throw new Error(String(r.status));
       return r.json() as Promise<{ gridConnected?: boolean; loginSupported?: boolean; loginEndpointConfigured?: boolean }>;
     })
-    .then(info => { gatewayStatus.textContent = info.gridConnected ? (info.loginSupported ? 'G1-Endpunkt erreichbar · Login-Adapter bereit' : 'G1-Endpunkt erreichbar · Login noch gesperrt') : (info.loginEndpointConfigured ? 'Gateway online · G1-Endpunkt nicht erreichbar' : 'Gateway online · G1-Endpunkt nicht konfiguriert'); })
+    .then(info => {
+      loginReady = Boolean(info.loginSupported && window.isSecureContext && new URL(gateway, window.location.origin).origin === window.location.origin);
+      fields.forEach(field => { field.disabled = !loginReady; });
+      loginButton.disabled = !loginReady;
+      loginMessage.textContent = loginReady ? 'Login-Adapter bereit; Simulatorverbindung noch nicht implementiert.' : 'Login nicht verfügbar; keine Zugangsdaten eingeben.';
+      gatewayStatus.textContent = info.gridConnected ? (loginReady ? 'G1 erreichbar · Login-Adapter bereit' : 'G1 erreichbar · Login gesperrt') : 'G1 derzeit nicht erreichbar';
+    })
     .catch(() => { gatewayStatus.textContent = 'Gateway nicht erreichbar · Demo-Modus'; })
     .finally(() => window.clearTimeout(timeout));
 }
