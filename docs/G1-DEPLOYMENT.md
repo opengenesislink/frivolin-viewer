@@ -11,10 +11,10 @@ cd ../gateway && go test ./... && go build -o frivolin-gateway .
 ## Run gateway (localhost only)
 ```sh
 export LISTEN_ADDR=127.0.0.1:8090
-export G1_LOGIN_URL=https://hg.stadt-nexverse.de:8002/
+export G1_LOGIN_URL=http://hg.stadt-nexverse.de:80/
 ./frivolin-gateway
 ```
-Set G1_LOGIN_URL to the **actual** G1 XML-RPC login endpoint after verifying the server configuration; the example port is not verified. The current preflight sends HEAD and reports transport reachability only, not successful login or grid compatibility.
+The G1 endpoint was supplied by the grid operator. Confirm that this path accepts OpenSim XML-RPC login requests before enabling authentication. The current preflight sends HEAD and reports transport reachability only, not successful login or grid compatibility. The gateway-to-G1 connection currently uses plaintext HTTP; prefer a private network or TLS when available.
 
 ## Production routing
 Configure KeyHelp's managed web server to reverse proxy **only** `/api/` and `/healthz` to `http://127.0.0.1:8090`. Preserve the existing document root serving `web/dist`. Do not expose port 8090 publicly. Configure reverse proxy in the supported KeyHelp mechanism, not by modifying generated vhost files.
