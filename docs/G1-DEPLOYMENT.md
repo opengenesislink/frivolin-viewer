@@ -1,6 +1,6 @@
 # G1 Gateway – KeyHelp deployment (Phase 1)
 
-The browser application is currently a local 3D prototype. **There is no authenticated OpenSim login, inventory, region streaming, or avatar session yet.** The login interface is a non-submitting preview.
+The browser application is currently a local 3D prototype. **There is no authenticated OpenSim browser session, inventory, region streaming, or avatar session yet.** The login form is connected to the experimental XML-RPC adapter, but is enabled only when the gateway reports login support.
 
 ## Build
 ```sh
@@ -22,7 +22,7 @@ Configure KeyHelp's managed web server to reverse proxy **only** `/api/` and `/h
 The browser defaults to same-origin `/api/v1/capabilities`; `VITE_GATEWAY_URL` may override the base URL at build time. The frontend must be rebuilt after changing it.
 
 ## Security
-- No credentials are accepted or forwarded in this phase.
+- Login is disabled by default. When explicitly enabled, credentials are forwarded only over HTTPS or an explicitly configured private HTTP link.
 - Never expose a raw arbitrary upstream URL as a client-provided parameter.
 - TLS is terminated at the HTTPS frontend; secure the backend hop.
 - Add CSRF defenses, rate limiting, XML-RPC response validation, secure session handling and UDP/CAPS transport before enabling actual login.
@@ -48,3 +48,25 @@ Example only after configuring and verifying the private tunnel: `G1_LOGIN_URL=h
 The web client now has a real form wired to `POST /api/v1/session/login`. It is disabled unless the gateway reports `loginSupported=true` and the browser is on a secure same-origin connection. Password input is cleared after a response. **This does not mean an avatar session exists.** The Go adapter still returns `session_transport_not_implemented` on successful upstream authentication; the real simulator region is not streamed. The Babylon scene is a placeholder, not Magdeburg. Do not advertise this build as a playable world viewer.
 
 Required for a real world view: store successful login circuit/agent/session information server-side; establish and maintain simulator UDP circuit, CAPS seed/EventQueue; fetch and decode terrain, region objects, textures, mesh and avatar appearance; expose authenticated per-session world state to the browser. No OpenSim UDP-to-WebSocket protocol is implemented yet.
+
+## Diagnosing login configuration
+
+The gateway now returns distinct JSON error codes for the login route:
+
+| Code | Meaning |
+| --- | --- |
+| `login_endpoint_missing` | `G1_LOGIN_URL` is not configured. |
+| `login_transport_blocked` | Upstream does not meet the configured transport policy. |
+| `login_disabled` | `G1_ENABLE_LOGIN` is not `true`. |
+| `login_rejected` | G1 explicitly rejected the supplied credentials. |
+| `session_transport_not_implemented` | G1 accepted authentication but no browser simulator session exists. |
+
+For the public G1 hostname on plain HTTP, `login_transport_blocked` is expected. `G1_PRIVATE_TRANSPORT=true` alone cannot make a public hostname private. Do not use real avatar passwords to probe the public HTTP login path.
+
+For diagnostics without credentials:
+```sh
+curl -sS http://127.0.0.1:8090/healthz
+curl -sS http://127.0.0.1:8090/api/v1/capabilities
+```
+
+The LLUDP framing, UDP socket and UseCircuitCode packet builder exist as independent components. They are not yet wired to an authenticated login or browser region stream.
